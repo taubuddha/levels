@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import { useMemo, useState } from "react";
 
 export default function TradingLevelsCalculator() {
-  const [rangeHigh, setRangeHigh] = React.useState("");
-  const [rangeLow, setRangeLow] = React.useState("");
-  const [instrument, setInstrument] = React.useState("MNQ");
-  const [contracts, setContracts] = React.useState("1");
+  const [rangeHigh, setRangeHigh] = useState("");
+  const [rangeLow, setRangeLow] = useState("");
+  const [instrument, setInstrument] = useState("MNQ");
+  const [contracts, setContracts] = useState("1");
 
   const resetForm = () => {
     setRangeHigh("");
@@ -18,14 +18,25 @@ export default function TradingLevelsCalculator() {
   const high = parseFloat(rangeHigh);
   const low = parseFloat(rangeLow);
   const contractCount = parseInt(contracts || "1", 10);
-  const valid = !isNaN(high) && !isNaN(low) && high > low && contractCount > 0;
 
-  const values = React.useMemo(() => {
-    const tickSize = instrument === "MNQ" ? 0.25 : 0.1;
-    const roundToTick = (num) => Math.round(num / tickSize) * tickSize;
+  const valid =
+    !isNaN(high) &&
+    !isNaN(low) &&
+    high > low &&
+    !isNaN(contractCount) &&
+    contractCount > 0;
+
+  const values = useMemo(() => {
     if (!valid) return null;
 
+    const tickSize = instrument === "MNQ" ? 0.25 : 0.1;
+    const multiplier = instrument === "MNQ" ? 2 : 10;
+
+    const roundToTick = (num) =>
+      Math.round(num / tickSize) * tickSize;
+
     const rangeSize = roundToTick(high - low);
+
     const longEntry = roundToTick(high - rangeSize * 0.1);
     const longStop = roundToTick(low - rangeSize * 0.25);
     const longTarget = roundToTick(longEntry + rangeSize);
@@ -34,8 +45,10 @@ export default function TradingLevelsCalculator() {
     const shortStop = roundToTick(high + rangeSize * 0.25);
     const shortTarget = roundToTick(shortEntry - rangeSize);
 
-    const multiplier = instrument === "MNQ" ? 2 : 10;
-    const riskPerContract = (longEntry - longStop) * multiplier;
+    const riskPerContract =
+      Math.abs(longEntry - longStop) * multiplier;
+
+    const totalRisk = riskPerContract * contractCount;
 
     return {
       tickSize,
@@ -47,55 +60,63 @@ export default function TradingLevelsCalculator() {
       shortStop,
       shortTarget,
       riskPerContract,
-      totalRisk: riskPerContract * contractCount,
+      totalRisk,
     };
-  }, [high, low, instrument, valid]);
+  }, [high, low, instrument, contractCount, valid]);
 
-  const fmt = (n) => n.toFixed(instrument === "MNQ" ? 2 : 1);
+  const fmt = (num) =>
+    num.toFixed(instrument === "MNQ" ? 2 : 1);
 
   return (
     <div className="min-h-screen bg-black text-white p-4 flex items-center justify-center">
-      <div className="w-full max-w-md bg-zinc-900 rounded-3xl shadow-2xl p-5 space-y-5 border border-zinc-800">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-5 space-y-5">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Levels Calculator</h1>
           <button
             onClick={resetForm}
-            className="text-sm px-3 py-2 rounded-xl bg-zinc-800 active:bg-zinc-700"
+            className="px-3 py-2 rounded-xl bg-zinc-800 active:bg-zinc-700 text-sm"
           >
             Reset
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1 text-zinc-400">Range High</label>
-            <input
-              type="number"
-              value={rangeHigh}
-              onChange={(e) => setRangeHigh(e.target.value)}
-              className="w-full rounded-2xl bg-zinc-800 border border-zinc-700 p-4 text-lg"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1 text-zinc-400">Range Low</label>
-            <input
-              type="number"
-              value={rangeLow}
-              onChange={(e) => setRangeLow(e.target.value)}
-              className="w-full rounded-2xl bg-zinc-800 border border-zinc-700 p-4 text-lg"
-            />
-          </div>
+        <div>
+          <label className="block text-sm mb-1 text-zinc-400">
+            Range High
+          </label>
+          <input
+            type="number"
+            value={rangeHigh}
+            onChange={(e) => setRangeHigh(e.target.value)}
+            className="w-full rounded-2xl bg-zinc-800 border border-zinc-700 p-4 text-lg"
+          />
         </div>
 
         <div>
-          <label className="block text-sm mb-2 text-zinc-400">Instrument</label>
+          <label className="block text-sm mb-1 text-zinc-400">
+            Range Low
+          </label>
+          <input
+            type="number"
+            value={rangeLow}
+            onChange={(e) => setRangeLow(e.target.value)}
+            className="w-full rounded-2xl bg-zinc-800 border border-zinc-700 p-4 text-lg"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-2 text-zinc-400">
+            Instrument
+          </label>
           <div className="grid grid-cols-2 gap-3">
             {["MNQ", "MGC"].map((item) => (
               <button
                 key={item}
                 onClick={() => setInstrument(item)}
-                className={`rounded-2xl p-4 font-medium border ${instrument === item ? "bg-white text-black border-white" : "bg-zinc-800 border-zinc-700"}`}
+                className={`rounded-2xl p-4 font-medium border ${instrument === item
+                    ? "bg-white text-black border-white"
+                    : "bg-zinc-800 border-zinc-700"
+                  }`}
               >
                 {item}
               </button>
@@ -104,7 +125,9 @@ export default function TradingLevelsCalculator() {
         </div>
 
         <div>
-          <label className="block text-sm mb-1 text-zinc-400">Contracts</label>
+          <label className="block text-sm mb-1 text-zinc-400">
+            Contracts
+          </label>
           <input
             type="number"
             min="1"
@@ -135,13 +158,17 @@ export default function TradingLevelsCalculator() {
               <h2 className="font-semibold mb-1">Risk</h2>
               <p>${fmt(values.riskPerContract)} per contract</p>
               <p>${fmt(values.totalRisk)} total risk</p>
-              <p className="text-xs text-zinc-400 mt-1">Rounded to {values.tickSize} tick size</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                Rounded to {values.tickSize} tick size
+              </p>
             </div>
           </div>
         )}
 
         {!valid && (rangeHigh || rangeLow) && (
-          <p className="text-sm text-red-400">Range High must be greater than Range Low.</p>
+          <p className="text-sm text-red-400">
+            Enter a valid range and contract amount.
+          </p>
         )}
       </div>
     </div>
