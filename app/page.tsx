@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 
 export default function TradingLevelsCalculator() {
-  const [rangeHigh, setRangeHigh] = useState("");
-  const [rangeLow, setRangeLow] = useState("");
-  const [instrument, setInstrument] = useState("MNQ");
-  const [contracts, setContracts] = useState("1");
+  const [rangeHigh, setRangeHigh] = useState<string>("");
+  const [rangeLow, setRangeLow] = useState<string>("");
+  const [instrument, setInstrument] = useState<"MNQ" | "MGC">("MNQ");
+  const [contracts, setContracts] = useState<string>("1");
 
-  const resetForm = () => {
+  const resetForm = (): void => {
     setRangeHigh("");
     setRangeLow("");
     setInstrument("MNQ");
@@ -32,7 +32,7 @@ export default function TradingLevelsCalculator() {
     const tickSize = instrument === "MNQ" ? 0.25 : 0.1;
     const multiplier = instrument === "MNQ" ? 2 : 10;
 
-    const roundToTick = (num) =>
+    const roundToTick = (num: number): number =>
       Math.round(num / tickSize) * tickSize;
 
     const rangeSize = roundToTick(high - low);
@@ -64,7 +64,7 @@ export default function TradingLevelsCalculator() {
     };
   }, [high, low, instrument, contractCount, valid]);
 
-  const fmt = (num) =>
+  const fmt = (num: number): string =>
     num.toFixed(instrument === "MNQ" ? 2 : 1);
 
   return (
@@ -109,7 +109,7 @@ export default function TradingLevelsCalculator() {
             Instrument
           </label>
           <div className="grid grid-cols-2 gap-3">
-            {["MNQ", "MGC"].map((item) => (
+            {(["MNQ", "MGC"] as const).map((item) => (
               <button
                 key={item}
                 onClick={() => setInstrument(item)}
